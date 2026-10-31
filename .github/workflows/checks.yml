@@ -1,0 +1,39 @@
+name: Checks
+on: [push, pull_request]
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: cleanlink_test
+          MYSQL_USER: cleanlink_test
+          MYSQL_PASSWORD: ci-test-only
+          MYSQL_ROOT_PASSWORD: ci-root-test-only
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=5s
+          --health-timeout=3s
+          --health-retries=30
+    env:
+      APP_URL: http://localhost:3020
+      MYSQL_HOST: 127.0.0.1
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: cleanlink_test
+      MYSQL_USER: cleanlink_test
+      MYSQL_PASSWORD: ci-test-only
+      TEST_DATABASE: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run db:setup
+      - run: npm test
+      - run: npm run typecheck
+      - run: npm run build
